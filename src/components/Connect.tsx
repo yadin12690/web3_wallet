@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { PublicKey, Transaction } from "@solana/web3.js";
+import { TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 
 function Connect() {
     const [provider, setProvider] = useState<undefined>(
@@ -21,29 +21,39 @@ function Connect() {
     };
 
     /**
+     * @description gets token list for display amount
+     */
+    const getTokenList = () => {
+        new TokenListProvider().resolve().then((tokens) => {
+            const tokenList = tokens.filterByClusterSlug('mainnet-beta').getList();
+            const monkeyBallToken = tokenList.find(item => item.symbol === 'MBS');
+            console.log(monkeyBallToken);
+            return tokenList;
+        });
+    };
+
+    /**
      * @description prompts user to connect wallet if it exists
      */
     const connectWallet = async () => {
-        // @ts-ignore
-        const { solana } = window;
+        const { solana } = (window as any);
 
         if (solana) {
             try {
                 const response = await solana.connect();
-                console.log("wallet account ", response.publicKey.toString());
+                console.log("wallet account key", response.publicKey.toString());
                 setWalletKey(response.publicKey.toString());
             } catch (err) {
-                // { code: 4001, message: 'User rejected the request.' }
+                console.log(err);
             }
         }
     };
 
     /**
-     * @description disconnect Phantom wallet
+     * @description disconnect from Phantom wallet
      */
     const disconnectWallet = async () => {
-        // @ts-ignore
-        const { solana } = window;
+        const { solana } = (window as any);
 
         if (walletKey && solana) {
             await (solana).disconnect();
@@ -54,6 +64,8 @@ function Connect() {
     // detect phantom provider exists
     useEffect(() => {
         const provider = getProvider();
+
+        const tokenList = getTokenList();
 
         if (provider) setProvider(provider);
         else setProvider(undefined);
