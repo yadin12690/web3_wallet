@@ -112,7 +112,7 @@ function Connect() {
 
                 {!provider && (
                     <p>
-                        No provider found. Install{" "}
+                        No extention was found. Install{" "}
                         <a href="https://phantom.app/">Phantom Browser extension</a>
                     </p>
                 )}
