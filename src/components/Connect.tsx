@@ -10,10 +10,8 @@ function Connect() {
         undefined
     );
 
-    const [mbsTokenAdress, setMbsTokenAdress] = useState<TokenInfo | undefined>();
+    const [mbsTokenMint, setMbsTokenAdress] = useState<string | undefined>();
     const [mbsAmount, setMbsAmount] = useState<TokenInfo | undefined>();
-
-    const MBStoken = 'Fm9rHUTF5v3hwMLbStjZXqNBBoZyGriQaFM6sTFz3K8A';
 
     /**
      * @description gets Phantom provider, if it exists
@@ -28,13 +26,14 @@ function Connect() {
 
     /**
      * @description gets token list for display amount
+     * @returns $MBS token mint adress.
      */
     const getTokenList = () => {
         new TokenListProvider().resolve().then((tokens) => {
             const tokenList = tokens.filterByClusterSlug('mainnet-beta').getList();
             const monkeyBallToken = tokenList.find(item => item.symbol === 'MBS');
-            setMbsTokenAdress(monkeyBallToken);
-            return tokenList;
+            setMbsTokenAdress(monkeyBallToken?.address);
+            return monkeyBallToken;
         });
     };
 
@@ -49,7 +48,7 @@ function Connect() {
                 const response = await solana.connect();
                 console.log("wallet account key", response.publicKey.toString());
                 setWalletKey(response.publicKey.toString());
-                getMBSBalance();
+                getTokenBalance();
             } catch (err) {
                 console.log(err);
             }
@@ -58,10 +57,10 @@ function Connect() {
 
     /**
     * @description JSON RPC API call to get amount of $MBS amount 
-    * @constant publicWalletApiKey
-    * @constant mintTokenAdress
+    * @constant walletKey
+    * @constant mbsTokenMint
     */
-    const getMBSBalance = async () => {
+    const getTokenBalance = async (tokenMintAddress?: string) => {
         try {
             const response = await axios({
                 url: `https://api.mainnet-beta.solana.com`,
@@ -70,20 +69,16 @@ function Connect() {
                 data: {
                     jsonrpc: "2.0",
                     id: 1,
-                    method: "getTokenAccountsByOwner",
+                    method: "getBalance",
                     params: [
                         'H8Zm2RAg4CAfskDitUK2aPCrmFzAWpcaRej6HajXevwU',
                         {
-                            mint: 'Fm9rHUTF5v3hwMLbStjZXqNBBoZyGriQaFM6sTFz3K8A',
-                        },
-                        {
-                            encoding: "jsonParsed",
+                            commitment: "finalized",
                         },
                     ],
                 },
             });
-            console.log(response);
-            const amount = response.data.result.value;
+            const amount = response?.data.result.value;
             setMbsAmount(amount);
         } catch (e) {
             console.error(e);
@@ -105,14 +100,12 @@ function Connect() {
     // detect phantom provider exists
     useEffect(() => {
         const provider = getProvider();
-
-        const tokenList = getTokenList();
+        getTokenList();
 
         if (provider) setProvider(provider);
         else setProvider(undefined);
 
-        console.log(MBStoken);
-    }, []);
+    }, [walletKey]);
 
     return (
         <div className="App">
