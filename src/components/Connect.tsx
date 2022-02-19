@@ -46,7 +46,7 @@ function Connect() {
                 const response = await solana.connect();
                 console.log("wallet account key", response.publicKey.toString());
                 setWalletKey(response.publicKey.toString());
-                getTokenBalance(mbsTokenMint, walletKey);
+                getTokenBalance(mbsTokenMint);
             } catch (err) {
                 console.log(err);
             }
@@ -58,7 +58,7 @@ function Connect() {
     * @constant walletKey
     * @constant mbsTokenMint
     */
-    const getTokenBalance = async (tokenMintAddress?: string, walletPublicKey?: string) => {
+    const getTokenBalance = async (tokenMintAddress?: string) => {
         try {
             const response = await axios({
                 url: `https://api.mainnet-beta.solana.com`,
@@ -106,7 +106,7 @@ function Connect() {
         if (provider) setProvider(provider);
         else setProvider(undefined);
 
-    }, [walletKey]);
+    }, []);
 
     return (
         <div className="App">
