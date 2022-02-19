@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
+import axios from 'axios';
 
 function Connect() {
     const [provider, setProvider] = useState<undefined>(
@@ -8,6 +9,11 @@ function Connect() {
     const [walletKey, setWalletKey] = useState<undefined>(
         undefined
     );
+
+    const [mbsTokenAdress, setMbsTokenAdress] = useState<TokenInfo | undefined>();
+    const [mbsAmount, setMbsAmount] = useState<TokenInfo | undefined>();
+
+    const MBStoken = 'Fm9rHUTF5v3hwMLbStjZXqNBBoZyGriQaFM6sTFz3K8A';
 
     /**
      * @description gets Phantom provider, if it exists
@@ -27,7 +33,7 @@ function Connect() {
         new TokenListProvider().resolve().then((tokens) => {
             const tokenList = tokens.filterByClusterSlug('mainnet-beta').getList();
             const monkeyBallToken = tokenList.find(item => item.symbol === 'MBS');
-            console.log(monkeyBallToken);
+            setMbsTokenAdress(monkeyBallToken);
             return tokenList;
         });
     };
@@ -43,9 +49,44 @@ function Connect() {
                 const response = await solana.connect();
                 console.log("wallet account key", response.publicKey.toString());
                 setWalletKey(response.publicKey.toString());
+                getMBSBalance();
             } catch (err) {
                 console.log(err);
             }
+        }
+    };
+
+    /**
+    * @description JSON RPC API call to get amount of $MBS amount 
+    * @constant publicWalletApiKey
+    * @constant mintTokenAdress
+    */
+    const getMBSBalance = async () => {
+        try {
+            const response = await axios({
+                url: `https://api.mainnet-beta.solana.com`,
+                method: "post",
+                headers: { "Content-Type": "application/json" },
+                data: {
+                    jsonrpc: "2.0",
+                    id: 1,
+                    method: "getTokenAccountsByOwner",
+                    params: [
+                        'H8Zm2RAg4CAfskDitUK2aPCrmFzAWpcaRej6HajXevwU',
+                        {
+                            mint: 'Fm9rHUTF5v3hwMLbStjZXqNBBoZyGriQaFM6sTFz3K8A',
+                        },
+                        {
+                            encoding: "jsonParsed",
+                        },
+                    ],
+                },
+            });
+            console.log(response);
+            const amount = response.data.result.value;
+            setMbsAmount(amount);
+        } catch (e) {
+            console.error(e);
         }
     };
 
@@ -69,6 +110,8 @@ function Connect() {
 
         if (provider) setProvider(provider);
         else setProvider(undefined);
+
+        console.log(MBStoken);
     }, []);
 
     return (
@@ -95,6 +138,7 @@ function Connect() {
                     <div>
                         <p>Connected account key:{walletKey}</p>
 
+                        <p>$MBS Amount:{mbsAmount ? 'No coins' : mbsAmount}</p>
                         <button
                             style={{
                                 fontSize: "16px",
