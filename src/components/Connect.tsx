@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
-import { PublicKey, Transaction } from "@solana/web3.js";
+import { TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
+import axios from 'axios';
 
 function Connect() {
     const [provider, setProvider] = useState<undefined>(
         undefined
     );
-    const [walletKey, setWalletKey] = useState<undefined>(
-        undefined
-    );
+    const [walletKey, setWalletKey] = useState<string>();
+
+    const [mbsTokenMint, setMbsTokenAdress] = useState<string | undefined>();
+    const [mbsAmount, setMbsAmount] = useState<TokenInfo | undefined>();
 
     /**
      * @description gets Phantom provider, if it exists
@@ -21,29 +23,74 @@ function Connect() {
     };
 
     /**
+     * @description gets token list for display amount
+     * @returns $MBS token mint adress.
+     */
+    const getTokenList = () => {
+        new TokenListProvider().resolve().then((tokens) => {
+            const tokenList = tokens.filterByClusterSlug('mainnet-beta').getList();
+            const monkeyBallToken = tokenList.find(item => item.symbol === 'MBS');
+            setMbsTokenAdress(monkeyBallToken?.address);
+            return monkeyBallToken;
+        });
+    };
+
+    /**
      * @description prompts user to connect wallet if it exists
      */
     const connectWallet = async () => {
-        // @ts-ignore
-        const { solana } = window;
+        const { solana } = (window as any);
 
         if (solana) {
             try {
                 const response = await solana.connect();
-                console.log("wallet account ", response.publicKey.toString());
+                console.log("wallet account key", response.publicKey.toString());
                 setWalletKey(response.publicKey.toString());
+                getTokenBalance(mbsTokenMint);
             } catch (err) {
-                // { code: 4001, message: 'User rejected the request.' }
+                console.log(err);
             }
         }
     };
 
     /**
-     * @description disconnect Phantom wallet
+    * @description JSON RPC API call to get amount of $MBS amount 
+    * @constant walletKey
+    * @constant mbsTokenMint
+    */
+    const getTokenBalance = async (tokenMintAddress?: string) => {
+        try {
+            const response = await axios({
+                url: `https://api.mainnet-beta.solana.com`,
+                method: "post",
+                headers: { "Content-Type": "application/json" },
+                data: {
+                    jsonrpc: "2.0",
+                    id: 1,
+                    method: "getTokenAccountsByOwner",
+                    params: [
+                        'H8Zm2RAg4CAfskDitUK2aPCrmFzAWpcaRej6HajXevwU',
+                        {
+                            mint: tokenMintAddress,
+                        },
+                        {
+                            encoding: "jsonParsed",
+                        },
+                    ],
+                },
+            });
+            const amount = response?.data.result.value;
+            setMbsAmount(amount);
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    /**
+     * @description disconnect from Phantom wallet
      */
     const disconnectWallet = async () => {
-        // @ts-ignore
-        const { solana } = window;
+        const { solana } = (window as any);
 
         if (walletKey && solana) {
             await (solana).disconnect();
@@ -54,9 +101,11 @@ function Connect() {
     // detect phantom provider exists
     useEffect(() => {
         const provider = getProvider();
+        getTokenList();
 
         if (provider) setProvider(provider);
         else setProvider(undefined);
+
     }, []);
 
     return (
@@ -81,8 +130,9 @@ function Connect() {
 
                 {provider && walletKey && (
                     <div>
-                        <p>Connected account key:{walletKey}</p>
+                        <p>Connected account key:    {walletKey}</p>
 
+                        <p><b>$MBS Amount:    {mbsAmount ? 'No coins' : mbsAmount}</b></p>
                         <button
                             style={{
                                 fontSize: "16px",
@@ -100,7 +150,7 @@ function Connect() {
 
                 {!provider && (
                     <p>
-                        No provider found. Install{" "}
+                        No extention was found. Install{" "}
                         <a href="https://phantom.app/">Phantom Browser extension</a>
                     </p>
                 )}
