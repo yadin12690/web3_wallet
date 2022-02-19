@@ -6,9 +6,7 @@ function Connect() {
     const [provider, setProvider] = useState<undefined>(
         undefined
     );
-    const [walletKey, setWalletKey] = useState<undefined>(
-        undefined
-    );
+    const [walletKey, setWalletKey] = useState<string>();
 
     const [mbsTokenMint, setMbsTokenAdress] = useState<string | undefined>();
     const [mbsAmount, setMbsAmount] = useState<TokenInfo | undefined>();
@@ -48,7 +46,7 @@ function Connect() {
                 const response = await solana.connect();
                 console.log("wallet account key", response.publicKey.toString());
                 setWalletKey(response.publicKey.toString());
-                getTokenBalance();
+                getTokenBalance(mbsTokenMint, walletKey);
             } catch (err) {
                 console.log(err);
             }
@@ -60,7 +58,7 @@ function Connect() {
     * @constant walletKey
     * @constant mbsTokenMint
     */
-    const getTokenBalance = async (tokenMintAddress?: string) => {
+    const getTokenBalance = async (tokenMintAddress?: string, walletPublicKey?: string) => {
         try {
             const response = await axios({
                 url: `https://api.mainnet-beta.solana.com`,
@@ -69,11 +67,14 @@ function Connect() {
                 data: {
                     jsonrpc: "2.0",
                     id: 1,
-                    method: "getBalance",
+                    method: "getTokenAccountsByOwner",
                     params: [
                         'H8Zm2RAg4CAfskDitUK2aPCrmFzAWpcaRej6HajXevwU',
                         {
-                            commitment: "finalized",
+                            mint: tokenMintAddress,
+                        },
+                        {
+                            encoding: "jsonParsed",
                         },
                     ],
                 },
@@ -129,9 +130,9 @@ function Connect() {
 
                 {provider && walletKey && (
                     <div>
-                        <p>Connected account key:{walletKey}</p>
+                        <p>Connected account key:    {walletKey}</p>
 
-                        <p>$MBS Amount:{mbsAmount ? 'No coins' : mbsAmount}</p>
+                        <p><b>$MBS Amount:    {mbsAmount ? 'No coins' : mbsAmount}</b></p>
                         <button
                             style={{
                                 fontSize: "16px",
